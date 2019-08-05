@@ -1,18 +1,39 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+const shortid = require("shortid");
 const PORT = process.env.PORT || 3000;
-const menu = require("./db/costs/all-costs.json");
+const menu = require(path.join(__dirname, "./db/products/all-products.json"));
 
-app.get("/costs", function(req, res) {
+app.get("/products", (req, res) => {
   res.send(menu);
 });
 
-app.get("/costs/:id", function(req, res) {
-  res.send(menu.find(i => i.id === Number(req.params.id)));
-});
-
-app.get("/category", function(req, res) {
-  res.send(menu.filter(val => val.category === req.query.category));
+app.post("/signup", (req, res) => {
+  const newUser = {
+    id: shortid.generate(),
+    username: req.body.username,
+    telephone: req.body.telephone,
+    password: req.body.password,
+    email: req.body.email
+  };
+  if (!fs.existsSync("./db/users")) {
+    fs.mkdirSync("./db/users");
+  }
+  fs.writeFile(
+    `./db/users/${req.body.username}.json`,
+    JSON.stringify(newUser),
+    err => {
+      if (err) {
+        console.log(err);
+        return;
+      }
+    }
+  );
+  res.send(newUser);
 });
 
 app.use(function(req, res, next) {
