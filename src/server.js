@@ -1,52 +1,25 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-const shortid = require("shortid");
-const PORT = process.env.PORT || 3000;
-const menu = require(path.join(__dirname, "./db/products/all-products.json"));
+const http = require("http");
+const url = require("url");
 
-app.get("/products", (req, res) => {
-  res.send(menu);
-});
+const morgan = require("morgan");
+const router = require("./routes/router");
 
-app.post("/signup", (req, res) => {
-  const newUser = {
-    id: shortid.generate(),
-    username: req.body.username,
-    telephone: req.body.telephone,
-    password: req.body.password,
-    email: req.body.email
-  };
-  if (!fs.existsSync("./db/users")) {
-    fs.mkdirSync("./db/users");
-  }
-  fs.writeFile(
-    `./db/users/${req.body.username}.json`,
-    JSON.stringify(newUser),
-    err => {
-      if (err) {
-        console.log(err);
-        return;
-      }
-    }
-  );
-  res.send(newUser);
-});
+const logger = morgan("combined");
 
-app.use(function(req, res, next) {
-  let err = new Error("not found");
-  err.status = 404;
-  next(err);
-});
+const startServer = port => {
+  const server = http.createServer((request, response) => {
+    // Get route from the request
+    const parsedUrl = url.parse(request.url);
 
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.send("error");
-});
+    // Get router function
+    const func = router[parsedUrl.pathname] || router.default;
 
-app.listen(PORT, () => {
-  console.log("server is running on " + PORT);
-});
+    logger(request, response, () => func(request, response));
+  });
+
+  server.listen(port, () => {
+    console.log("server is running on " + port);
+  });
+};
+
+module.exports = startServer;
