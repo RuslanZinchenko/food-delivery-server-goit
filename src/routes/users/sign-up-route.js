@@ -5,31 +5,34 @@ const path = require("path");
 const signUpRoute = (request, response) => {
   if (request.method === "POST") {
     let body = "";
-    let name;
 
     request.on("data", function(data) {
       body += data;
     });
 
     request.on("end", function() {
-      let userData = JSON.parse(body);
+      const userData = qs.parse(body);
+      const { userName } = userData;
+      console.log(userName);
 
-      const { username } = userData;
-      name = username;
+      if (!fs.existsSync("./db/users")) {
+        fs.mkdirSync("./db/users");
+      }
 
       fs.writeFile(
-        path.join(__dirname, "../../../db/users/", `${username}.json`),
+        path.join(__dirname, "../../../db/users/", `${userName}.json`),
         body,
         err => {
-          if (err) throw err;
+          if (err) {
+            console.log(err);
+            return;
+          }
 
-          console.log("The file has been saved!");
+          response.writeHead(200, { "Content-Type": "application/json" });
+          response.write(JSON.stringify(body));
+          response.end();
         }
       );
-
-      response.writeHead(200, { "Content-Type": "application/json" });
-      response.write(JSON.stringify({ user: userData, status: "success" }));
-      response.end();
     });
   }
 };
